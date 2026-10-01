@@ -1,0 +1,64 @@
+--- install.upstream.sh
++++ install.sh
+@@ -376,22 +376,26 @@
+ }
+ 
+ isValidXHTTPTLSPort() {
+-    [[ "${1:-}" =~ ^[0-9]+$ ]] && ((10#${1} >= 10000 && 10#${1} <= 30000))
++    [[ "${1:-}" =~ ^[0-9]{1,5}$ ]] && ((10#${1} >= 1 && 10#${1} <= 50000))
+ }
+ 
+ buildXrayXHTTPTLSConfig() {
+-    local port=$1 domainName=$2 customPath=$3 clientsJson=$4
++    isValidXHTTPTLSPort "${1:-}" || return 1
++    local port=$((10#${1})) domainName=$2 customPath=$3 clientsJson=$4
++    local internalPort=45988
++    # Avoid colliding with the public listener when it uses the usual internal port.
++    [[ "${port}" == "45988" ]] && internalPort=45989
+     jq -n --arg domain "${domainName}" --arg path "/${customPath#\/}xHTTP" \
+-        --argjson clients "${clientsJson}" --argjson publicPort "${port}" '
++        --argjson clients "${clientsJson}" --argjson publicPort "${port}" --argjson internalPort "${internalPort}" '
+       {inbounds:[
+-        {listen:"127.0.0.1",port:45988,protocol:"vless",tag:"VLESSXHTTPTLS",
++        {listen:"127.0.0.1",port:$internalPort,protocol:"vless",tag:"VLESSXHTTPTLS",
+          settings:{clients:$clients,decryption:"none"},
+          streamSettings:{network:"xhttp",security:"tls",
+            tlsSettings:{serverName:$domain,minVersion:"1.2",rejectUnknownSni:true,
+              certificates:[{certificateFile:("/etc/v2ray-agent/tls/"+$domain+".crt"),keyFile:("/etc/v2ray-agent/tls/"+$domain+".key")}]},
+            xhttpSettings:{host:$domain,path:$path,mode:"auto"}}},
+         {listen:"0.0.0.0",port:$publicPort,protocol:"dokodemo-door",tag:"dokodemo-in-VLESSXHTTPTLS",
+-         settings:{address:"127.0.0.1",port:45988,network:"tcp"},streamSettings:{network:"tcp",security:"none"}}
++         settings:{address:"127.0.0.1",port:$internalPort,network:"tcp"},streamSettings:{network:"tcp",security:"none"}}
+       ],routing:{rules:[{type:"field",inboundTag:["dokodemo-in-VLESSXHTTPTLS"],outboundTag:"z_direct_outbound"}]}}'
+ }
+ 
+@@ -8805,7 +8809,7 @@
+     echoContent yellow "7.VLESS+Reality+uTLS+Vision[推荐]"
+     # echoContent yellow "8.VLESS+Reality+gRPC"
+     echoContent yellow "12.VLESS+Reality+XHTTP+TLS[CDN可用]"
+-    echoContent yellow "14.VLESS+XHTTP+TLS[随机端口，无需Nginx]"
++    echoContent yellow "14.VLESS+XHTTP+TLS[端口1-50000，无需Nginx]"
+     read -r -p "请选择[多选]，[例如:1,2,3]:" selectCustomInstallType
+     echoContent skyBlue "--------------------------------------------------------------"
+     if echo "${selectCustomInstallType}" | grep -q "，"; then
+@@ -10107,7 +10111,7 @@
+         xHTTPTLSPort=${xrayVLESSXHTTPTLSPort}
+     fi
+     if [[ -z "${xHTTPTLSPort}" ]]; then
+-        read -r -p "请输入XHTTP TLS公网TCP端口[回车随机10000-30000]:" xHTTPTLSPort
++        read -r -p "请输入XHTTP TLS公网TCP端口[1-50000，回车随机10000-30000]:" xHTTPTLSPort
+     fi
+     if [[ -z "${xHTTPTLSPort}" ]]; then
+         local attempts=0
+@@ -10127,9 +10131,10 @@
+         fi
+     fi
+     if ! isValidXHTTPTLSPort "${xHTTPTLSPort}"; then
+-        echoContent red " ---> XHTTP TLS端口输入错误"
++        echoContent red " ---> XHTTP TLS端口输入错误，请输入1-50000的整数"
+         return 1
+     fi
++    xHTTPTLSPort=$((10#${xHTTPTLSPort}))
+     checkPort "${xHTTPTLSPort}" transaction || return 1
+     allowPort "${xHTTPTLSPort}"
+     echoContent yellow "\n ---> XHTTP TLS端口: ${xHTTPTLSPort}"

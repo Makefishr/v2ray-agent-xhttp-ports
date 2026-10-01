@@ -1,0 +1,10 @@
+PASS: bash syntax check.
+PASS: all 50,000 ports in 1-50000 accepted by the validator.
+PASS: 14 invalid/boundary input cases rejected.
+PASS: 7 generated config cases preserve TLS, client and certificate settings.
+PASS: public port 45988 uses internal port 45989; forwarding target matches.
+PASS: leading-zero port input normalized to decimal.
+PASS: mocked occupied port 443 rejected before firewall allowance.
+PASS: mocked out-of-range port rejected before firewall allowance.
+PASS: blank input preserves upstream random range 10000-30000.
+Installer not executed; no VPS deployment or Xray runtime connection verified.

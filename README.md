@@ -4,16 +4,10 @@
 
 ## 在 VPS 下载运行
 
-仓库为私密仓库。先在 VPS 安装 GitHub CLI (`gh`)，然后登录有权读取此仓库的 GitHub 账号：
+仓库为公开仓库，无需登录 GitHub。以 root 运行以下命令，先下载为临时文件，成功后才替换 `/root/install.sh`：
 
 ```bash
-gh auth login --hostname github.com --git-protocol https --web
-```
-
-以 root 运行以下命令。先下载为临时文件，成功后才替换 `/root/install.sh`：
-
-```bash
-gh api -H 'Accept: application/vnd.github.raw+json' 'repos/Makefishr/v2ray-agent-xhttp-ports/contents/install.sh?ref=main' > /root/install.sh.download &&
+curl -fL https://raw.githubusercontent.com/Makefishr/v2ray-agent-xhttp-ports/main/install.sh -o /root/install.sh.download &&
 mv /root/install.sh.download /root/install.sh &&
 chmod 700 /root/install.sh &&
 bash /root/install.sh
